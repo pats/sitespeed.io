@@ -317,7 +317,7 @@ module.exports = async function(context, commands) {
   // We hide the HTML to avoid that the click on the link will
   // fire First Visual Change. Best case you don't need to but we 
   // want an complex example
-  await commands.js.run('document.body.style.display = "none"');
+  await commands.js.run('for (let node of document.body.childNodes) { if (node.style) node.style.display = "none";}');
   await commands.measure.start('CheckoutAsGuest');
   await commands.click.bySelectorAndWait('.checkout-as-guest');
   // Make sure to stop measuring and collect the metrics for the CheckoutAsGuest step
@@ -359,6 +359,20 @@ module.exports = async function(context, commands) {
 };
 ~~~
 
+### Error handling
+We have better error handling in the todo list, checkout issue [#2426](https://github.com/sitespeedio/sitespeed.io/issues/2426). At the moment you can try/catch failing navigations. The script will continue and the failing URL will be a failure in the HTML.
+
+
+~~~javascript
+module.exports = async function(context, commands) {
+  await commands.measure.start('https://www.sitespeed.io');
+  try {
+    await commands.measure.start('https://apa/');
+  } catch (e) {}
+  return commands.measure.start('https://www.sitespeed.io/documentation/');
+};
+~~~
+
 ## Tips and Tricks
 
 ### Include the script in the HTML result
@@ -387,13 +401,15 @@ module.exports = async function(context, commands) {
 };
 ~~~
 
-If you want to click a link and make sure the background is white, you can hide the HTML and then click the link.
+If you want to click a link and want to make sure that the HTML doesn't change when you click the link, you can try to hide the HTML and then click the link. 
 
 ~~~javascript
 module.exports = async function(context, commands) {
     await commands.measure.start('https://www.sitespeed.io');
     // Hide everything
-    await commands.js.run('document.body.style.display = "none"');
+    // We do not hide the body since the body needs to be visibile when we do the magic to find the staret of the 
+    // navigation by adding a layer of orange on top of the page
+    await commands.js.run('for (let node of document.body.childNodes) { if (node.style) node.style.display = "none";}');
     // Start measurning
     await commands.measure.start();
     // Click on the link and wait on navigation to happen
@@ -401,6 +417,33 @@ module.exports = async function(context, commands) {
     return commands.measure.stop();
 };
 ~~~
+
+
+
+### Test one page that need a much longer page complete check than others
+
+If you have one page that needs some special handling that maybe do a couple of late and really slow AJAX requests, you can catch that with your on wait for the page to finish.
+
+~~~javascript
+module.exports = async function(context, commands) {
+  // First test a couple pages with default page complete check
+  await commands.measure.start('https://<page1>');
+  await commands.measure.start('https://<page2>');
+  await commands.measure.start('https://<page3>');
+
+  // Then we have a page that we know need to wait longer, start measuring
+  await command.measure.start('MySpecialPage');
+  // Go to the page  
+  await commands.navigate('https://<myspecialpage>'); 
+  // Then you need to wait on a specific element or event. In this case
+  // we wait for a id to appear but you could also run your custom JS
+  await commands.wait.byId('my-id', 20000);
+  // And then when you know that page has loaded stop the measurement
+  // = stop the video, collect metrics etc
+  return commands.measure.stop();
+};
+~~~
+
 
 ### Test the same page multiple times within the same run
 
@@ -423,6 +466,8 @@ module.exports = async function(context, commands) {
 
 All commands will return a promise and you should await it to fulfil. If some command do not work, we will log that automatically and rethrow the error, so you can catch that and can act on that.
 
+The commands that ends with a **...AndWait** will wait for a new page to load, so use them only when you are clicking on a link and want a new page or view to load.
+
 ### Measure
 The measure command will prepare everything for measuring a new URL (clearing internal metrics, starting the video etc). If you give an URL to the measure command it will start to measure and navigate to that URL.
 
@@ -434,7 +479,7 @@ Start and navigate to the URL and then automatically call the stop() function af
 ~~~javascript
 module.exports = async function(context, commands) {
   await commands.measure.start('https://www.sitespeed.io');
-  // If you want to measuure multiple URLs after each other
+  // If you want to measure multiple URLs after each other
   // you can just line them up
   await commands.measure.start('https://www.sitespeed.io/examples/');
   return commands.measure.start('https://www.sitespeed.io/documentation/');
@@ -583,7 +628,7 @@ You can add text to input elements. The element needs to visible.
 #### addText.byId(text, id)
 Add the *text* to the element with the *id*. If the id is not found the command will throw an error.
 
-#### byXpath(text, xpath) 
+#### addText.byXpath(text, xpath) 
 Add the *text* to the element by using *xpath*. If the xpath is not found the command will throw an error.
 
 #### addText.bySelector(text, selector) 
@@ -595,46 +640,72 @@ You can switch to iframes or windows if that is needed.
 If frame/window is not found, an error will be thrown.
 {: .note .note-warning}
 
-#### toFrame(id)
+#### switch.toFrame(id)
 Switch to a frame by its id.
 
-#### toWindow(name) 
+#### switch.toWindow(name) 
 Switch to window by name.
 
-#### toParentFrame
+#### switch.toParentFrame
 Switch to the parent frame.
 
 ### Set
 
 Raw set value of elements.
 
-#### innerHtml(html, selector)
+#### set.innerHtml(html, selector)
 Use a CSS selector to find the element and set the html to innerHtml. Internally it uses ```document.querySelector(selector)``` to find the right element.
 
-#### innerHtmlById(html, id)
+#### set.innerHtmlById(html, id)
 
 Use the id to find the element and set the html to innerHtml. Internally it uses ```document.getElementById(id)``` to find the right element.
 
-#### innerText(text, selector) 
+#### set.innerText(text, selector) 
 Use a CSS selector to find the element and set the text to innerText. Internally it uses ```document.querySelector(selector)``` to find the right element.
 
-#### innerTextById(text, id)
+#### set.innerTextById(text, id)
 Use the id to find the element and set the text to innerText. Internally it uses ```document.getElementById(id)``` to find the right element.
 
-#### value(value, selector)
+#### set.value(value, selector)
 Use a CSS selector to find the element and set the value to value. Internally it uses ```document.querySelector(selector)``` to find the right element.
 
-#### valueById(value, id)
+#### set.valueById(value, id)
 Use the id to find the element and set the value to value. Internally it uses ```document.getElementById(id)``` to find the right element.
 
 ### Cache
-There's an experimental command for clearing the cache. The command works both for Chrome and Firefox on desktop but not on Chrome on Android since we are using a WebExtension.
+There's an experimental command for clearing the cache. The command works both for Chrome and Firefox on desktop but not on Chrome on Android since we are using a [WebExtension](https://github.com/sitespeedio/browsertime-extension).
 
-#### clear()
+#### cache.clear()
 Clear the browser cache. Remove cache and cookies.
 
-#### clearKeepCookies()
+#### cache.clearKeepCookies()
 Clear the browser cache but keep cookies.
+
+### Chrome DevTools Protocol
+Send messages to Chrome using the [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/). This only works in Chrome. You can send and send and get the result.
+
+#### cdp.send(command, args)
+Send a command to Chrome and don't expect something back.
+
+Here's an example of injecting JavaScript that runs on every new document.
+
+~~~javascript
+module.exports = async function(context, commands) {
+  await commands.cdp.send('Page.addScriptToEvaluateOnNewDocument',{source: 'console.log("hello");'});
+  await commands.measure.start('https://www.sitespeed.io');
+}
+~~~
+
+#### cdp.sendAndGet(command, args)
+Send a command to Chrome and get the result back. 
+
+~~~javascript
+module.exports = async function(context, commands) {
+  await commands.measure.start('https://www.sitespeed.io');
+  const domCounters = await commands.cdp.sendAndGet('Memory.getDOMCounters');
+  context.log.info('Memory.getDOMCounters %j', domCounters);
+ }
+~~~
 
 ### Use Selenium directly
 You can use Selenium directly if you need to use things that are not availible through our commands.

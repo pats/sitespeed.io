@@ -5,6 +5,7 @@ Browser
   --browsertime.iterations, -n                                              How many times you want to test each page  [default: 3]
   --browsertime.spa, --spa                                                  Convenient parameter to use if you test a SPA application: will automatically wait for X seconds after last network activity and use hash in file names. Read https://www.sitespeed.io/documentation/sitespeed.io/spa/  [boolean] [default: false]
   --browsertime.connectivity.profile, -c, --connectivity                    The connectivity profile. To actually set the connectivity you can choose between Docker networks or Throttle, read https://www.sitespeed.io/documentation/sitespeed.io/connectivity/  [choices: "3g", "3gfast", "3gslow", "3gem", "2g", "cable", "native", "custom"] [default: "native"]
+  --browsertime.connectivity.alias                                          Give your connectivity profile a custom name
   --browsertime.connectivity.downstreamKbps, --downstreamKbps               This option requires --connectivity be set to "custom".
   --browsertime.connectivity.upstreamKbps, --upstreamKbps                   This option requires --connectivity be set to "custom".
   --browsertime.connectivity.latency, --latency                             This option requires --connectivity be set to "custom".
@@ -62,6 +63,9 @@ Chrome
   --browsertime.chrome.collectConsoleLog, --chrome.collectConsoleLog        Collect Chromes console log and save to disk.  [boolean]
   --browsertime.chrome.binaryPath, --chrome.binaryPath                      Path to custom Chrome binary (e.g. Chrome Canary). On OS X, the path should be to the binary inside the app bundle, e.g. "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
 
+chrome
+  --browsertime.chrome.cdp.performance, --chrome.cdp.performance  Collect Chrome performance metrics from Chrome DevTools Protocol  [boolean] [default: true]
+
 proxy
   --browsertime.proxy.http, --proxy.http    Http proxy (host:port)  [string]
   --browsertime.proxy.https, --proxy.https  Https proxy (host:port)  [string]
@@ -69,6 +73,7 @@ proxy
 Crawler
   --crawler.depth, -d     How deep to crawl (1=only one page, 2=include links from first page, etc.)
   --crawler.maxPages, -m  The max number of pages to test. Default is no limit.
+  --crawler.exclude       Exclude URLs matching the provided regular expression (ex: "/some/path/", "://some\.domain/"). Can be provided multiple times.
 
 Grafana
   --grafana.host  The Grafana host used when sending annotations.
@@ -84,6 +89,7 @@ Graphite
   --graphite.namespace             The namespace key added to all captured metrics.  [default: "sitespeed_io.default"]
   --graphite.includeQueryParams    Whether to include query parameters from the URL in the Graphite keys or not  [boolean] [default: false]
   --graphite.arrayTags             Send the tags as Array or a String. In Graphite 1.0 the tags is a array. Before a String  [boolean] [default: true]
+  --graphite.annotationTitle       Add a title to the annotation sent for a run.
   --graphite.annotationMessage     Add an extra message that will be attached to the annotation sent for a run. The message is attached after the default message and can contain HTML.
   --graphite.annotationScreenshot  Include screenshot (from Browsertime) in the annotation. You need to specify a --resultBaseURL for this to work.  [boolean] [default: false]
   --graphite.statsd                Uses the StatsD interface  [boolean] [default: false]
@@ -102,6 +108,7 @@ Budget
   --budget.output            The output format of the budget.  [choices: "junit", "tap", "json"]
 
 Screenshot
+  --browsertime.screenshot                                                                Set to false to disable screenshots  [boolean] [default: true]
   --browsertime.screenshotParams.type, --screenshot.type                                  Set the file type of the screenshot  [choices: "png", "jpg"] [default: "png"]
   --browsertime.screenshotParams.png.compressionLevel, --screenshot.png.compressionLevel  zlib compression level  [default: 6]
   --browsertime.screenshotParams.jpg.quality, --screenshot.jpg.quality                    Quality of the JPEG screenshot. 1-100  [default: 80]
@@ -147,10 +154,10 @@ Slack
   --slack.limitMetric   The metric that will be used to set warning/error  [choices: "coachScore", "speedIndex", "firstVisualChange"] [default: "coachScore"]
 
 s3
-  --s3.endpoint           The S3 endpoint
-  --s3.key                The S3 key
-  --s3.secret             The S3 secret
-  --s3.bucketname         Name of the S3 bucket
+  --s3.endpoint           The S3 endpoint. Optional depending on your settings.
+  --s3.key                The S3 key.
+  --s3.secret             The S3 secret.
+  --s3.bucketname         Name of the S3 bucket,
   --s3.path               Override the default folder path in the bucket where the results are uploaded. By default it's "DOMAIN_OR_FILENAME/TIMESTAMP", or the name of the folder if --outputFolder is specified.
   --s3.region             The S3 region. Optional depending on your settings.
   --s3.acl                The S3 canned ACL to set. Optional depending on your settings.
@@ -158,12 +165,21 @@ s3
   --s3.params             Extra params passed when you do the S3.upload: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property - Example: --s3.params.Expires=31536000 to set expire to one year.
   --s3.options            Extra options passed when you create the S3 object: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#constructor-property - Example: add --s3.options.apiVersion=2006-03-01 to lock to a specific API version.
 
+GoogleCloudStorage
+  --gcs.projectId          The Google Cloud storage Project ID
+  --gcs.key                The Google Cloud storage service account key
+  --gcs.bucketname         Name of the Google Cloud storage bucket
+  --gcs.public             Make uploaded results to Google Cloud storage publicly readable.  [boolean] [default: false]
+  --gcs.path               Override the default folder path in the bucket where the results are uploaded. By default it's "DOMAIN_OR_FILENAME/TIMESTAMP", or the name of the folder if --outputFolder is specified.
+  --gcs.removeLocalResult  Remove all the local result files after they have been uploaded to Google Cloud storage.  [boolean] [default: false]
+
 HTML
   --html.showAllWaterfallSummary  Set to true to show all waterfalls on page summary HTML report  [boolean] [default: false]
   --html.fetchHARFiles            Set to true to load HAR files using fetch instead of including them in the HTML. Turn this on if serve your pages using a server.  [boolean] [default: false]
   --html.logDownloadLink          Adds a link in the HTML so you easily can download the logs from the sitespeed.io run. If your server is public, be careful so you don't log passwords etc  [boolean] [default: false]
   --html.topListSize              Maximum number of assets to include in each toplist in the toplist tab  [default: 10]
   --html.showScript               Show a link to the script you use to run. Be careful if your result is public and you keep passwords in your script.  [boolean] [default: false]
+  --html.assetsBaseURL            The base URL to the server serving the assets of HTML results. In the format of https://result.sitespeed.io. This can be used to reduce size in large setups. If set, disables writing of assets to the output folder.
 
 Text
   --summary         Show brief text summary to stdout  [boolean] [default: false]

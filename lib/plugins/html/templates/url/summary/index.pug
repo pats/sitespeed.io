@@ -47,7 +47,7 @@ block content
               tr
                 td Requests:
                 td #{d.pagexray.pageSummary.requests}
-            if d.browsertime && d.browsertime.pageSummary && d.browsertime.pageSummary.statistics.timings.fullyLoaded   
+            if d.browsertime && d.browsertime.pageSummary && d.browsertime.pageSummary.statistics && d.browsertime.pageSummary.statistics.timings && d.browsertime.pageSummary.statistics.timings.fullyLoaded   
               tr
                 td Fully Loaded [median]:
                 td #{h.time.ms(d.browsertime.pageSummary.statistics.timings.fullyLoaded.median)}
@@ -135,6 +135,10 @@ block content
     if d.pagexray && d.pagexray.pageSummary
       section#pagexray-panel
         include ../pagexray/index.pug
+
+    if d.thirdparty && d.thirdparty.pageSummary
+      section#thirdparty-panel
+        include ../thirdparty/index.pug
 
     each pageSummary in pageSummaries
       - const panelName = pageSummary.id + '-panel'
